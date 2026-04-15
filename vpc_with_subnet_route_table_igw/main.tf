@@ -10,8 +10,8 @@ terraform {
 
 
 provider "aws" {
-    region  = "eu-west-1"
-    profile = "Batch-8" 
+    region  = "ap-south-1"
+    profile = "Batch-11" 
 }
 
 
@@ -23,8 +23,11 @@ resource "aws_vpc" "main" {
 }
 
 resource "aws_subnet" "public" {
-    vpc_id = aws_vpc.main.id
-    cidr_block = "192.168.1.0/24"
+    vpc_id                  = aws_vpc.main.id
+    cidr_block              = "192.168.1.0/24"
+    availability_zone       = "ap-south-1a"
+    map_public_ip_on_launch = true
+
     tags = {
         Name = "public-subnet"
     }
@@ -56,11 +59,40 @@ resource "aws_route_table_association" "public_rt_assoc" {
 }
 
 
+resource "aws_security_group" "web_sg" {
+    name        = "web-server-sg"
+    description = "Allow SSH inbound traffic"
+    vpc_id      = aws_vpc.main.id
+
+    ingress {
+        from_port   = 22
+        to_port     = 22
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+
+    egress {
+        from_port   = 0
+        to_port     = 0
+        protocol    = "-1"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+
+    tags = {
+        Name = "web-server-sg"
+    }
+}
+
 resource "aws_instance" "web_server" {
-    ami = "ami-0f71aec9381dcafd1"
-    instance_type = "t2.micro"
-    subnet_id = aws_subnet.public.id
+    ami                         = "ami-05d2d839d4f73aafb"
+    instance_type               = "t2.micro"
+    subnet_id                   = aws_subnet.public.id
+    associate_public_ip_address = true
+    vpc_security_group_ids      = [aws_security_group.web_sg.id]
+
     tags = {
         Name = "web-server"
     }
 }
+
+
